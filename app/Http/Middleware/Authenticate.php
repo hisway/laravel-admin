@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 class Authenticate
 {
@@ -21,7 +22,20 @@ class Authenticate
             if ($request->ajax() || $request->wantsJson()) {
                 return response('Unauthorized.', 401);
             } else {
-                return redirect()->guest('login');
+                return redirect()->guest($guard.'/login');
+            }
+        }
+        if(Auth::guard($guard)->user()->is_super){
+            return $next($request);
+        }
+        if($request->is('admin/*')){
+            $permission = Route::currentRouteName();
+            if(!Auth::guard($guard)->user()->can($permission)) {
+                if($request->ajax() || $request->wantsJson()) {
+                    return response('Permission denied.', 403);
+                } else {
+                    abort(403);
+                }
             }
         }
 
